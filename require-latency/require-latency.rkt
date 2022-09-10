@@ -44,7 +44,7 @@ and others.
      (- (time-racket module-name)
         (time-racket))))
 
-(program (require-latency [module-name "module name"])
+(program (require-latency [module-name "module path"])
   (displayln (~a (time-module-ms module-name) " ms")))
 
 (module+ main
