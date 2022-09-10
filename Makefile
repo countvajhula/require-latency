@@ -44,7 +44,7 @@ build-all:
 # does the equivalent of make setup, this tries to do as little as
 # possible except checking deps.
 check-deps:
-	raco setup --no-docs $(DEPS-FLAGS) $(PACKAGE-NAME)
+	raco setup --no-docs $(DEPS-FLAGS) --pkgs $(PACKAGE-NAME)
 
 # Note: Each collection's info.rkt can say what to clean, for example
 # (define clean '("compiled" "doc" "doc/<collect>")) to clean
