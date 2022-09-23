@@ -29,17 +29,19 @@ Michael Ballantyne, and others.
 
 (define (time-module-ms module-name)
   (define-values (sp out in err)
-    (subprocess #f
-                #f
-                #f
-                (find-executable-path "racket")
-                "-l"
-                "racket/base"
-                "-e"
-                ((if (file)
-                     time-command-relative
-                     time-command-absolute)
-                 module-name)))
+    (apply subprocess
+           `(#f
+             #f
+             #f
+             ,(find-executable-path "racket")
+             ,@(apply append
+                      (for/list ([m (modulus)])
+                        (list "-l" m)))
+             "-e"
+             ,((if (file)
+                   time-command-relative
+                   time-command-absolute)
+               module-name))))
   (define ms (string->number (string-trim (port->string out))))
   (close-input-port out)
   (close-output-port in)
@@ -50,6 +52,12 @@ Michael Ballantyne, and others.
 (flag (file)
   ("-f" "--file" "Treat the input as a relative path to a file instead of an installed module in a collection.")
   (file #t))
+
+(flag (modulus #:param [modulus (list "racket/base")] module)
+  ("-m" "--modulo" "Specify modules to be loaded as the starting point against which latency will be measured.")
+  (modulus (cons module (modulus))))
+
+(constraint (multi modulus))
 
 (program (require-latency [module-name "module path"])
   (let ([result (time-module-ms module-name)])
