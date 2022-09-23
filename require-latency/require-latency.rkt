@@ -5,7 +5,8 @@
 
 (require racket/port
          racket/format
-         racket/string)
+         racket/string
+         racket/match)
 
 #|
 This uses the following method to estimate the require latency:
@@ -43,11 +44,14 @@ Michael Ballantyne, and others.
                    time-command-absolute)
                module-name))))
   (define ms (string->number (string-trim (port->string out))))
+  (define error (port->string err))
   (close-input-port out)
   (close-output-port in)
   (close-input-port err)
   (subprocess-wait sp)
-  ms)
+  (if (equal? "" error)
+      (cons 'result ms)
+      (cons 'error error)))
 
 (flag (file)
   ("-f" "--file" "Treat the input as a relative path to a file instead of an installed module in a collection.")
@@ -60,10 +64,12 @@ Michael Ballantyne, and others.
 (constraint (multi modulus))
 
 (program (require-latency [module-name "module path"])
-  (let ([result (time-module-ms module-name)])
-    (if result
-        (printf (~a result " ms\n"))
-        (fprintf (current-error-port) "Module not found!\n"))))
+  (match-let ([(cons tag result) (time-module-ms module-name)])
+    (if (eq? 'error tag)
+        (fprintf (current-error-port)
+                 (~a "There was an error loading the module:\n"
+                     result))
+        (printf (~a result " ms\n")))))
 
 (module+ main
   (run require-latency))
