@@ -49,7 +49,7 @@ Michael Ballantyne, and others.
   (close-output-port in)
   (close-input-port err)
   (subprocess-wait sp)
-  (if (equal? "" error)
+  (if ms
       (cons 'result ms)
       (cons 'error error)))
 
