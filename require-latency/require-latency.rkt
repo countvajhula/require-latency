@@ -101,7 +101,6 @@ Michael Ballantyne, and others.
                            "(displayln p)"
                            "(old p n))))")
                          "-e"
-                         ,(~a "(require " module-name ")")
                          ,((if (file)
                                require-command-relative
                                require-command-absolute)
