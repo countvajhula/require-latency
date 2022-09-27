@@ -23,10 +23,19 @@ Michael Ballantyne, and others.
 |#
 
 (define (time-command-absolute module-name)
-  (~a "(let () (define-values (_0 _1 ms _2) " "(time-apply (lambda () (dynamic-require " "'" module-name " 0)) null)) ms)"))
+  (~a "(let () (define-values (_0 _1 ms _2) "
+      "(time-apply (lambda () (dynamic-require "
+      "'"
+      module-name
+      " 0)) null)) ms)"))
 
 (define (time-command-relative module-name)
-  (~a "(let () (define-values (_0 _1 ms _2) " "(time-apply (lambda () (dynamic-require " "\"" module-name "\"" " 0)) null)) ms)"))
+  (~a "(let () (define-values (_0 _1 ms _2) "
+      "(time-apply (lambda () (dynamic-require "
+      "\""
+      module-name
+      "\""
+      " 0)) null)) ms)"))
 
 (define (time-module-ms module-name)
   (define-values (sp out in err)
