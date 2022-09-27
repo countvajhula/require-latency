@@ -37,6 +37,19 @@ Michael Ballantyne, and others.
       "\""
       " 0)) null)) ms)"))
 
+(define (require-command-absolute module-name)
+  (~a "(dynamic-require "
+      "'"
+      module-name
+      " 0)"))
+
+(define (require-command-relative module-name)
+  (~a "(dynamic-require "
+      "\""
+      module-name
+      "\""
+      " 0)"))
+
 (define (time-module-ms module-name)
   (define-values (sp out in err)
     (apply subprocess
@@ -62,6 +75,39 @@ Michael Ballantyne, and others.
       (cons 'result ms)
       (cons 'error error)))
 
+(define (capture-modules-loaded module-name)
+  (define-values (sp out in err)
+    (apply subprocess
+           `(#f
+             #f
+             #f
+             ,(find-executable-path "racket")
+             ,@(apply append
+                      (for/list ([m (modulus)])
+                        (list "-l" m)))
+             "-e"
+             ,(~a
+               "(let ([old (current-load/use-compiled)])"
+               "(current-load/use-compiled"
+               "(lambda (p n)"
+               "(displayln p)"
+               "(old p n))))")
+             "-e"
+             ,(~a "(require " module-name ")")
+             ,((if (file)
+                   require-command-relative
+                   require-command-absolute)
+               module-name))))
+  (define result (string-trim (port->string out)))
+  (define error (port->string err))
+  (close-input-port out)
+  (close-output-port in)
+  (close-input-port err)
+  (subprocess-wait sp)
+  (if result
+      (cons 'result result)
+      (cons 'error error)))
+
 (flag (file)
   ("-f" "--file" "Treat the input as a relative path to a file instead of an installed module in a collection.")
   (file #t))
@@ -80,5 +126,16 @@ Michael Ballantyne, and others.
                      result))
         (printf (~a result " ms\n")))))
 
-(module+ main
+(program (modules-loaded [module-name "module path"])
+  (match-let ([(cons tag result) (capture-modules-loaded module-name)])
+    (if (eq? 'error tag)
+        (fprintf (current-error-port)
+                 (~a "There was an error loading the module:\n"
+                     result))
+        (printf (~a result "\n")))))
+
+(module+ require-latency
   (run require-latency))
+
+(module+ modules-loaded
+  (run modules-loaded))
