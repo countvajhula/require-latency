@@ -50,63 +50,65 @@ Michael Ballantyne, and others.
       "\""
       " 0)"))
 
-(define (time-module-ms module-name)
+(define (run-process . args)
+  ;; Run a process with the command and arguments
+  ;; specified in args, and return the output from
+  ;; STDOUT as well as STDERR as strings.
   (define-values (sp out in err)
     (apply subprocess
            `(#f
              #f
              #f
-             ,(find-executable-path "racket")
-             ,@(apply append
-                      (for/list ([m (modulus)])
-                        (list "-l" m)))
-             "-e"
-             ,((if (file)
-                   time-command-relative
-                   time-command-absolute)
-               module-name))))
-  (define ms (string->number (string-trim (port->string out))))
-  (define error (port->string err))
-  (close-input-port out)
-  (close-output-port in)
-  (close-input-port err)
-  (subprocess-wait sp)
-  (if ms
-      (cons 'result ms)
-      (cons 'error error)))
-
-(define (capture-modules-loaded module-name)
-  (define-values (sp out in err)
-    (apply subprocess
-           `(#f
-             #f
-             #f
-             ,(find-executable-path "racket")
-             ,@(apply append
-                      (for/list ([m (modulus)])
-                        (list "-l" m)))
-             "-e"
-             ,(~a
-               "(let ([old (current-load/use-compiled)])"
-               "(current-load/use-compiled"
-               "(lambda (p n)"
-               "(displayln p)"
-               "(old p n))))")
-             "-e"
-             ,(~a "(require " module-name ")")
-             ,((if (file)
-                   require-command-relative
-                   require-command-absolute)
-               module-name))))
+             .
+             ,args)))
   (define result (string-trim (port->string out)))
   (define error (port->string err))
   (close-input-port out)
   (close-output-port in)
   (close-input-port err)
   (subprocess-wait sp)
-  (if result
-      (cons 'result result)
-      (cons 'error error)))
+  (values result error))
+
+(define (time-module-ms module-name)
+  (let-values ([(result error)
+                (apply run-process
+                       `(,(find-executable-path "racket")
+                         ,@(apply append
+                                  (for/list ([m (modulus)])
+                                    (list "-l" m)))
+                         "-e"
+                         ,((if (file)
+                               time-command-relative
+                               time-command-absolute)
+                           module-name)))])
+    (define ms (string->number result))
+    (if ms
+        (cons 'result ms)
+        (cons 'error error))))
+
+(define (capture-modules-loaded module-name)
+  (let-values ([(result error)
+                (apply run-process
+                       `(,(find-executable-path "racket")
+                         ,@(apply append
+                                  (for/list ([m (modulus)])
+                                    (list "-l" m)))
+                         "-e"
+                         ,(~a
+                           "(let ([old (current-load/use-compiled)])"
+                           "(current-load/use-compiled"
+                           "(lambda (p n)"
+                           "(displayln p)"
+                           "(old p n))))")
+                         "-e"
+                         ,(~a "(require " module-name ")")
+                         ,((if (file)
+                               require-command-relative
+                               require-command-absolute)
+                           module-name)))])
+    (if result
+        (cons 'result result)
+        (cons 'error error))))
 
 (flag (file)
   ("-f" "--file" "Treat the input as a relative path to a file instead of an installed module in a collection.")
